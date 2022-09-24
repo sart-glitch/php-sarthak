@@ -1,0 +1,162 @@
+README.txt
+----------
+Create this directories structure:
+.
+├── docker-compose.yml
+├── Dockerfile
+├── dump
+│   └── myDb.sql
+├── sessions
+└── www
+    └── index.php
+	
+	
+	
+	docker-compose.yml
+	------------------
+version: "2"
+services:
+    www:
+        build: .
+        ports:
+            - "8001:80"
+        volumes:
+            - ./www:/var/www/html/
+        links:
+            - db
+        networks:
+            - default
+    db:
+        image: mysql:5.7.13
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_DATABASE: myDb
+            MYSQL_USER: user
+            MYSQL_PASSWORD: test
+            MYSQL_ROOT_PASSWORD: test
+        volumes:
+            - ./dump:/docker-entrypoint-initdb.d
+            - persistent:/var/lib/mysql
+        networks:
+            - default
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        links:
+            - db:db
+        ports:
+            - 8000:80
+        environment:
+            MYSQL_USER: user
+            MYSQL_PASSWORD: test
+            MYSQL_ROOT_PASSWORD: test
+volumes:
+    persistent:
+
+
+
+Dockerfile
+----------
+
+FROM php:7.0.30-apache
+RUN docker-php-ext-install mysqli
+
+
+
+myDb.sql
+--------
+-- put in ./dump directory
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+
+CREATE TABLE `Person` (
+  `id` int(11) NOT NULL,
+  `name` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+INSERT INTO `Person` (`id`, `name`) VALUES
+(1, 'William'),
+(2, 'Marc'),
+(3, 'John');
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+
+
+
+
+index.php
+----------
+
+<!-- put in ./www directory -->
+
+<html>
+ <head>
+  <title>Hello...</title>
+
+  <meta charset="utf-8"> 
+
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+    <div class="container">
+    <?php echo "<h1>Hi! I'm happy</h1>"; ?>
+
+    <?php
+
+    $conn = mysqli_connect('db', 'user', 'test', "myDb");
+
+
+    $query = 'SELECT * From Person';
+    $result = mysqli_query($conn, $query);
+
+    echo '<table class="table table-striped">';
+    echo '<thead><tr><th></th><th>id</th><th>name</th></tr></thead>';
+    while($value = $result->fetch_array(MYSQLI_ASSOC)){
+        echo '<tr>';
+        echo '<td><a href="#"><span class="glyphicon glyphicon-search"></span></a></td>';
+        foreach($value as $element){
+            echo '<td>' . $element . '</td>';
+        }
+
+        echo '</tr>';
+    }
+    echo '</table>';
+
+    $result->close();
+
+    mysqli_close($conn);
+
+    ?>
+    </div>
+</body>
+</html>
+
+
+
+-----------------------
+1---->import hostel.sql
+2----->change in includes/config.php(admin also)
+<?php
+$dbuser="user";
+$dbpass="test";
+$host="http://35.86.106.156:8000/";
+$db="myDb";
+#$mysqli =new mysqli($host,$dbuser, $dbpass, $db);
+$mysqli =new mysqli('db', 'user', 'test', "myDb");
+?>
